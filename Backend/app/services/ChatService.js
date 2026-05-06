@@ -7,7 +7,7 @@ const ChatHistory = require("../models/ChatHistory");
 const OpenAI = require("openai");
 
 const client = new OpenAI({
-  apiKey: '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',
+  apiKey: '',
 });
 
 // ============================
