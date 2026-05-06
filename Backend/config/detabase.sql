@@ -1,0 +1,56 @@
+-- Create Database
+CREATE DATABASE IF NOT EXISTS chatbot;
+USE chatbot;
+
+-- Users Table
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20) NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Orders Table
+CREATE TABLE orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_number VARCHAR(50) UNIQUE NOT NULL,
+  user_id INT,
+  status VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Tracking Table
+CREATE TABLE tracking (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT,
+  location VARCHAR(100),
+  eta VARCHAR(50),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+CREATE TABLE complaints (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT,
+  user_id INT,
+  issue_type VARCHAR(100),
+  message TEXT,
+  status VARCHAR(50) DEFAULT 'open',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE chat_history (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  session_id VARCHAR(100),
+  role VARCHAR(20),
+  message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
