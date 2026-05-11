@@ -6,10 +6,10 @@ class ChatController {
     const message = req.body.message;
     const sessionId = req.body.sessionId;
     // pipeline process
-    const processed = Pipeline.process(message);
+    const processed = Pipeline.process(message, req);
 
     // service logic
-    const reply = await ChatService.handle(processed, message, sessionId);
+    const reply = await ChatService.handle(processed, message, sessionId, req);
 
     res.json({ reply });
   }

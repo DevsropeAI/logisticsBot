@@ -7,7 +7,7 @@ const ChatHistory = require("../models/ChatHistory");
 const OpenAI = require("openai");
 
 const client = new OpenAI({
-  apiKey: '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',
+  apiKey: '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',
 });
 
 // ============================
@@ -38,7 +38,7 @@ function isReturnEligible(deliveryDate) {
 
 class ChatService {
 
-  static async handle(data, userMessage, sessionId) {
+  static async handle(data, userMessage, sessionId, req) {
     try {
       // ============================
       // SAVE USER MESSAGE
@@ -59,6 +59,25 @@ class ChatService {
           sessionId
         );
 
+        if (!req.session.orderId) {
+
+          for (let i = history.length - 1; i >= 0; i--) {
+
+            const text = history[i].message;
+
+            const match = text.match(/(ORD\d+|\d{4,})/i);
+
+            if (match) {
+              req.session.orderId = match[0].toUpperCase();
+              console.log(
+                "Order ID loaded from history:",
+                req.session.orderId
+              );
+              break;
+            }
+          }
+        }
+
       // ============================
       // SYSTEM PROMPT
       // ============================
@@ -69,158 +88,84 @@ class ChatService {
           role: "system",
 
           content: `
-            You are a professional AI logistics customer support assistant.
+            You are a professional logistics customer support assistant.
 
-            Your job is to help customers naturally and professionally regarding:
+            Your responsibilities:
 
-            - Order tracking
-            - Delivery updates
-            - Delayed shipments
-            - Refund requests
-            - Return requests
-            - Exchange requests
-            - Damaged products
-            - Wrong item received
-            - Missing items
-            - Cancellation requests
-            - Address change requests
-            - Delivery issues
-            - Payment issues
-            - Complaint handling
-            - General customer support
+            Order tracking
+            Delivery updates
+            Refund requests
+            Return requests
+            Exchange requests
+            Cancellation requests
+            Wrong or damaged product issues
+            Complaint handling
+            General customer support
+            Orders are usually delivered within 7 days
+            Returns are allowed within 7 days after delivery
+            Refunds and exchanges are allowed according to policy
+            Orders marked "Out For Delivery" usually cannot be canceled
+            Customers may refuse delivery if unavailable
+            Always use ONLY the order data provided by the system
+            Never change or assume order status
+            Never invent tracking details or policies
+            If order status is "Pending", keep it Pending
+            If order status is "Out For Delivery", keep it Out For Delivery
+            Never contradict database information
+            If the user previously provided an order number in chat history, remember that order number and use it for follow-up questions.
+            If the order number is missing in the current user message:
+            politely ask for it
+            If a previously shared order number exists in chat history:
+            do not ask again
+            use that order number for the next requests
+            If customer reports an issue:
+            acknowledge the issue naturally
+            If complaint/ticket is already created:
+            confirm politely and do NOT ask again
+            Never repeatedly ask:
+            "Would you like to proceed?"
+            Never repeat the same response again and again
+            Continue conversation naturally using previous context
+            If customer is frustrated:
+            respond calmly and empathetically
 
-            ===========================
-            COMPANY POLICIES
-            ===========================
+            If customer reports:
 
-            - Orders are normally delivered within 7 days
-            - Customers can return products within 7 days after delivery
-            - Refunds are allowed according to policy
-            - Exchanges are allowed according to policy
-            - Orders already "Out For Delivery" usually cannot be canceled
-            - Customers may refuse delivery if unavailable
-            - Damaged or wrong products are eligible for exchange/review
-            - Escalate serious issues politely when needed
-
-            ===========================
-            YOUR BEHAVIOR
-            ===========================
-
-            - Reply like a real human support agent
-            - Be friendly, professional, and empathetic
-            - Keep responses short, natural, and conversational
-            - Avoid robotic replies
-            - Avoid repeating the same response again and again
-            - Never copy-paste previous responses
-            - Understand customer emotions and frustration
-            - Continue the conversation naturally
-            - Remember previous context from the conversation
-            - If customer gives additional explanation, acknowledge it properly
-            - Give alternative solutions when possible
-            - Do not always ask the same question repeatedly
-            - If order information is already available, do not ask for it again
-            - If customer already shared order number earlier, remember it
-            - If customer is angry or frustrated, respond calmly and politely
-            - If customer explains a personal issue (busy, out of city, emergency),
-              respond empathetically and suggest practical solutions
-            - Never sound like a machine
-            - Never respond with the exact same wording repeatedly
-
-            ===========================
-            IMPORTANT RULES
-            ===========================
-
-            - If user asks about an order and order number is missing,
-              politely ask for the order number
-
-            - If order status is "Out For Delivery":
-              explain politely that cancellation may not be possible
-
-            - If customer says they are unavailable or out of city:
-              suggest alternatives like:
-              - rescheduling delivery
-              - refusing delivery
-              - asking someone else to receive it
-
-            - If customer repeatedly asks same issue:
-              do NOT repeat same answer word-by-word
-              instead continue conversation naturally
-
-            - If customer asks for refund:
-              check eligibility according to policy
-
-            - If customer asks for exchange:
-              guide them properly
-
-            - If issue requires human support:
-              politely inform customer that support team will review it
-
-            - If complaint is created:
-              confirm complaint politely
-
-            - Always prioritize helpfulness and clarity
-
-            ===========================
-            TONE EXAMPLES
-            ===========================
-
-            GOOD:
-            "I understand your concern 😊"
-
-            GOOD:
-            "Sorry for the inconvenience."
-
-            GOOD:
-            "Let me check that for you."
-
-            GOOD:
-            "Since you're unavailable, we can try rescheduling delivery."
-
-            BAD:
-            Repeating same sentence again and again
-
-            BAD:
-            Sounding robotic
-
-            BAD:
-            Ignoring previous conversation context
-
-            IMPORTANT ISSUE HANDLING RULES:
-
-            If customer reports an issue such as:
-
-            refund
-            exchange
-            wrong product
-            damaged item
+            refund request
+            exchange request
             cancellation
             return request
+            wrong product
+            damaged item
             delivery issue
 
             Then:
 
-            acknowledge issue naturally
-            confirm issue has been noted
-            inform customer support team will contact them
-            do NOT repeatedly ask for confirmation
-            do NOT repeat same response
-            do NOT loop conversation
+            acknowledge issue politely
+            confirm support team will contact them
+            avoid repetitive replies
+            avoid looping conversation
+            Short
+            Human-like
+            Friendly
+            Professional
+            Conversational
 
-            Examples:
+            GOOD EXAMPLES:
 
-            GOOD:
-            "I noted your issue 😊
-            Our support team will contact you shortly."
+            "I understand your concern 😊"
+            "I noted your request."
+            "Our support team will contact you shortly."
 
-            BAD:
-            "Would you like to proceed?"
-            repeated again and again
+            BAD EXAMPLES:
 
-            ===========================
-            FINAL INSTRUCTION
-            ===========================
+            Repeating the same response
+            Asking for confirmation repeatedly
+            Contradicting order status
+            Sounding robotic
 
-            Behave exactly like a smart, experienced human logistics support agent with memory and conversational understanding.
+            Final instruction:
+            Behave like a smart human support agent that remembers context and responds naturally.
             `,
         },
 
@@ -238,29 +183,25 @@ class ChatService {
         });
 
       });
-
+      console.log("Session orderId is here:", req.session.orderId);
       // ============================
       // ORDER FLOW
       // ============================
-
-      if (data.orderNumber) {
-
+      if (req.session.orderId) {
+        console.log("Session orderId is here:", req.session.orderId);
         // find order
         const order =
           await Order.findByOrderNumber(
-            data.orderNumber
+            req.session.orderId
           );
 
         // order not found
         if (!order) {
-          // console.log(
-          //   "Order not found:",
-          //   data.orderNumber
-          // );
+          
           messages.push({
             role: "system",
             content: `
-              Order number ${data.orderNumber} was not found in database.
+              Order number ${req.session.orderId} was not found in database.
               Tell user politely.
             `,
           });
@@ -268,19 +209,13 @@ class ChatService {
         }
 
         else {
-          // console.log(
-          //   "Order found:",
-          //   data.orderNumber
-          // );
           // tracking
           const tracking = await Tracking.getTrackingByOrderId(order.id);
 
           // user
           const user = await User.getUserById(order.user_id);
 
-          // ============================
           // DETECT INTENT
-          // ============================
 
           let intent = "general";
 
@@ -288,60 +223,33 @@ class ChatService {
             userMessage.toLowerCase();
           console.log("user message intent:", lowerMessage);
 
-          if (
-            lowerMessage.includes("refund")
-          ) {
-
-            intent = "refund_request";
-
+          if (lowerMessage.includes("refund")) {
+           intent = "refund_request";
           }
-
           else if (
             lowerMessage.includes("exchange") ||
             lowerMessage.includes("wrong product") ||
             lowerMessage.includes("wrong item")
           ) {
-
             intent = "exchange_request";
-
           }
-
-          else if (
-            lowerMessage.includes("return")
-          ) {
-
+          else if (lowerMessage.includes("return")) {
             intent = "return_request";
-
           }
-
-          else if (
-            lowerMessage.includes("cancel")
-          ) {
-
+          else if (lowerMessage.includes("cancel")) {
             intent = "cancel_order";
-
           }
-
           else if (
             lowerMessage.includes("damaged") ||
             lowerMessage.includes("broken")
           ) {
-
             intent = "damaged_product";
-
           }
 
-          else if (
-            lowerMessage.includes("late")
-          ) {
-
+          else if (lowerMessage.includes("late")) {
             intent = "late_delivery";
-
           }
-
-          // ============================
           // CREATE COMPLAINT
-          // ============================
           console.log("Detected intent:", intent);
           const complaintIntents = [
             "refund_request",
@@ -357,30 +265,36 @@ class ChatService {
           if (complaintIntents.includes(intent)) {
 
             await Complaint.createComplaint({
-
               order_id: order.id,
               user_id: user.id,
               issue_type: intent,
               message: userMessage,
-
             });
             complaintCreated = true;
+
+            if (complaintCreated) { 
+              // Pending orders 
+             if (order.status === "Pending") 
+              {
+                 return ` I noted your ${intent.replace(/_/g, " ")} request 😊 Our support team will contact you shortly and help resolve your issue. Thank you for your patience. `; 
+              } 
+                 // Out for delivery 
+              else if ( order.status === "Out For Delivery" ) { 
+                return ` Your order is already out for delivery, so cancellation may not be possible now. You may refuse delivery if unavailable. Our support team will still review your request. `; 
+              } 
+              // Delivered 
+              else if ( order.status === "Delivered" ) { 
+                return ` I noted your request 😊 Our support team will contact you shortly and guide you regarding return or exchange options. `; 
+              } 
+            }
           }
 
-          // ============================
           // RETURN ELIGIBILITY
-          // ============================
-
           const eligible =isReturnEligible(tracking?.updated_at);
 
-          // ============================
           // GIVE CONTEXT TO AI
-          // ============================
-
           messages.push({
-
             role: "system",
-
             content: `
                 Customer Information:
                 - Name: ${user.name}
@@ -411,11 +325,7 @@ class ChatService {
         }
 
       }
-
-      // ============================
       // OPENAI RESPONSE
-      // ============================
-
       const aiResponse =
         await client.chat.completions.create({
           model: "gpt-4o-mini",
@@ -424,37 +334,26 @@ class ChatService {
         });
 
       const reply =aiResponse.choices[0].message.content;
-
-      // ============================
       // SAVE AI RESPONSE
-      // ============================
-
       await ChatHistory.saveMessage({
         session_id: sessionId,
         role: "assistant",
         message: reply,
 
       });
-
       return reply;
-
     }
-
     catch (error) {
-
       console.log(
         "ChatService Error:",
         error
       );
-
       return `
         ⚠️ Something went wrong.
         Please try again later.
       `;
     }
-
   }
-
 }
 
 module.exports = ChatService;
