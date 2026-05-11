@@ -2,23 +2,53 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate login process
-    setTimeout(() => {
+    setError('');
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+      console.log('API URL:', apiUrl); // Debug log
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Store token and user data in localStorage
+        localStorage.setItem('token', data.data.token);
+        localStorage.setItem('user', JSON.stringify(data.data));
+        
+        // Redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        setError(data.message || 'Login failed');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+      console.error('Login error:', error);
+    } finally {
       setIsLoading(false);
-      // In a real app, you would handle authentication here
-      console.log('Login attempt:', { email, password });
-    }, 2000);
+    }
   };
 
   return (
@@ -52,6 +82,13 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <div className="glass rounded-2xl shadow-2xl p-8 border border-white/20">
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+                <p className="text-red-200 text-sm">{error}</p>
+              </div>
+            )}
+            
             <form className="space-y-6" onSubmit={handleSubmit}>
               {/* Email Field */}
               <div>

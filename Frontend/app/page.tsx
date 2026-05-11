@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Message {
   id: string;
@@ -21,6 +23,7 @@ export default function Home() {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Generate or retrieve session ID
@@ -48,7 +51,8 @@ export default function Home() {
     setIsTyping(true);
 
     try {
-      const response = await fetch('http://localhost:2000/api/chat', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+      const response = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,6 +132,9 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Order Tracking Assistant</span>
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <Link href="/login" className="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                Admin Login
+              </Link>
             </div>
           </div>
         </div>

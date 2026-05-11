@@ -30,14 +30,15 @@ async function runSeeder() {
         db.query(
           `
           INSERT INTO users
-          (name, email, phone, password)
-          VALUES (?, ?, ?, ?)
+          (name, email, phone, password, role)
+          VALUES (?, ?, ?, ?, ?)
           `,
           [
             "Admin",
             "admin@example.com",
             null,
-            hashedPassword
+            hashedPassword,
+            'admin'
           ],
           (err, result) => {
 

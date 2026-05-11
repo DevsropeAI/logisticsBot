@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface SidebarItem {
   name: string;
@@ -12,6 +13,27 @@ interface SidebarItem {
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check authentication
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (!token || !userData) {
+      router.push('/login');
+      return;
+    }
+    
+    try {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      router.push('/login');
+    }
+  }, [router]);
 
   const sidebarItems: SidebarItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', current: true },
@@ -21,6 +43,12 @@ export default function DashboardPage() {
     { name: 'Analytics', href: '/dashboard/analytics', icon: 'analytics' },
     { name: 'Settings', href: '/dashboard/settings', icon: 'settings' },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -145,12 +173,21 @@ export default function DashboardPage() {
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/20">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">A</span>
+                <span className="text-white font-semibold">{user?.name?.charAt(0) || 'A'}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">Admin User</p>
-                <p className="text-xs text-white/70 truncate">admin@logisticsbot.com</p>
+                <p className="text-sm font-medium text-white truncate">{user?.name || 'Admin User'}</p>
+                <p className="text-xs text-white/70 truncate">{user?.email || 'admin@logisticsbot.com'}</p>
               </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-white/60 hover:text-white transition-colors"
+                title="Logout"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -179,12 +216,22 @@ export default function DashboardPage() {
                     </svg>
                     <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                   </button>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 px-3 py-2 text-sm text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                    title="Logout"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="hidden md:block">Logout</span>
+                  </button>
                   <div className="relative">
                     <button className="flex items-center space-x-2 text-sm text-white/80 hover:text-white">
                       <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">A</span>
+                        <span className="text-white font-semibold text-sm">{user?.name?.charAt(0) || 'A'}</span>
                       </div>
-                      <span className="hidden md:block font-medium">Admin</span>
+                      <span className="hidden md:block font-medium">{user?.name || 'Admin'}</span>
                     </button>
                   </div>
                 </div>
