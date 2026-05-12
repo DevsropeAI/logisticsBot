@@ -19,6 +19,7 @@ export default function LoginPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+
       console.log('API URL:', apiUrl); // Debug log
       const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',

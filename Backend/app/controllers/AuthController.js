@@ -74,6 +74,113 @@ class AuthController {
       });
     }
   }
+
+  static async getAllUsers(req, res) {
+    try {
+      const users = await User.getAllNonAdminUsers();
+      
+      res.status(200).json({
+        success: true,
+        message: 'Users retrieved successfully',
+        data: users
+      });
+
+    } catch (error) {
+      console.error('Get users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+
+  static async getAllOrders(req, res) {
+    try {
+      const Order = require('../models/Order');
+      const orders = await Order.getAllOrders();
+      
+      res.status(200).json({
+        success: true,
+        message: 'Orders retrieved successfully',
+        data: orders
+      });
+
+    } catch (error) {
+      console.error('Get orders error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+
+  static async getAllComplaints(req, res) {
+    try {
+      const Complaint = require('../models/Complaint');
+      const complaints = await Complaint.getAllComplaints();
+      
+      res.status(200).json({
+        success: true,
+        message: 'Complaints retrieved successfully',
+        data: complaints
+      });
+
+    } catch (error) {
+      console.error('Get complaints error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+
+  static async getDashboardStats(req, res) {
+    try {
+      const User = require('../models/User');
+      const Order = require('../models/Order');
+      const Complaint = require('../models/Complaint');
+
+      // Get all data
+      const users = await User.getAllNonAdminUsers();
+      const orders = await Order.getAllOrders();
+      const complaints = await Complaint.getAllComplaints();
+
+      // Calculate statistics
+      const stats = {
+        totalUsers: users.length,
+        totalOrders: orders.length,
+        totalComplaints: complaints.length,
+        recentOrders: orders.slice(0, 5), // Last 5 orders
+        recentComplaints: complaints.slice(0, 5), // Last 5 complaints
+        orderStatuses: {
+          pending: orders.filter(o => o.status === 'pending').length,
+          processing: orders.filter(o => o.status === 'processing').length,
+          shipped: orders.filter(o => o.status === 'shipped').length,
+          delivered: orders.filter(o => o.status === 'delivered').length,
+          cancelled: orders.filter(o => o.status === 'cancelled').length
+        },
+        complaintStatuses: {
+          open: complaints.filter(c => c.status === 'open').length,
+          investigating: complaints.filter(c => c.status === 'investigating').length,
+          resolved: complaints.filter(c => c.status === 'resolved').length,
+          closed: complaints.filter(c => c.status === 'closed').length
+        }
+      };
+      
+      res.status(200).json({
+        success: true,
+        message: 'Dashboard stats retrieved successfully',
+        data: stats
+      });
+
+    } catch (error) {
+      console.error('Get dashboard stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = AuthController;

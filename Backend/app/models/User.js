@@ -25,3 +25,15 @@ exports.findByEmail = (email) => {
     );
   });
 };
+
+exports.getAllNonAdminUsers = () => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      "SELECT id, name, email, phone, created_at FROM users WHERE role != 'admin' ORDER BY created_at DESC",
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};

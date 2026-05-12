@@ -1,3 +1,4 @@
+require("dotenv").config();
 const Order = require("../models/Order");
 const Tracking = require("../models/Tracking");
 const User = require("../models/User");
@@ -7,7 +8,7 @@ const ChatHistory = require("../models/ChatHistory");
 const OpenAI = require("openai");
 
 const client = new OpenAI({
-  apiKey: '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',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // ============================

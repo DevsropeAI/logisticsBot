@@ -1,8 +1,20 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+interface Order {
+  id: number;
+  order_number: string;
+  status: string;
+  created_at: string;
+  user_name: string;
+  user_email: string;
+  user_phone: string;
+  tracking_location?: string;
+  tracking_eta?: string;
+}
 
 interface SidebarItem {
   name: string;
@@ -11,73 +23,22 @@ interface SidebarItem {
   current?: boolean;
 }
 
-export default function DashboardPage() {
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
-    if (!token || !userData) {
-      router.push('/login');
-      return;
-    }
-    
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      router.push('/login');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:2000/api/dashboard/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDashboardData(data.data);
-      } else {
-        console.error('Failed to fetch dashboard data');
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const sidebarItems: SidebarItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', current: true },
+    { name: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
     { name: 'Users', href: '/users', icon: 'users' },
-    { name: 'Orders', href: '/orders', icon: 'orders' },
+    { name: 'Orders', href: '/orders', icon: 'orders', current: true },
     { name: 'Complaints', href: '/complaints', icon: 'complaints' },
     // { name: 'Analytics', href: '/dashboard/analytics', icon: 'analytics' },
     { name: 'Settings', href: '/dashboard/settings', icon: 'settings' },
   ];
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
-  };
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -123,18 +84,84 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-500/30 text-yellow-100';
+      case 'processing':
+        return 'bg-blue-500/30 text-blue-100';
+      case 'shipped':
+        return 'bg-purple-500/30 text-purple-100';
+      case 'delivered':
+        return 'bg-green-500/30 text-green-100';
+      case 'cancelled':
+        return 'bg-red-500/30 text-red-100';
+      default:
+        return 'bg-gray-500/30 text-gray-100';
+    }
+  };
+
+  useEffect(() => {
+    // Check authentication and get user data
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (!token || !userData) {
+      router.push('/login');
+      return;
+    }
+    
+    try {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      router.push('/login');
+    }
+
+    fetchOrders();
+  }, [router]);
+
+  const fetchOrders = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${apiUrl}/api/orders`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setOrders(data.data);
+      } else {
+        setError(data.message || 'Failed to fetch orders');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+      console.error('Fetch orders error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black">
-
-        {/* Animated Circles */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '4s' }}></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '6s' }}></div>
-
-        {/* Grid Pattern */}
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
       </div>
 
@@ -236,7 +263,7 @@ export default function DashboardPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                   </button>
-                  <h1 className="ml-4 lg:ml-0 text-2xl font-bold text-white">Dashboard</h1>
+                  <h1 className="ml-4 lg:ml-0 text-2xl font-bold text-white">Orders</h1>
                 </div>
                 <div className="flex items-center space-x-4">
                   <button className="relative p-2 text-white/80 hover:text-white">
@@ -268,156 +295,77 @@ export default function DashboardPage() {
             </div>
           </header>
 
-          {/* Dashboard Content */}
+          {/* Orders Content */}
           <main className="p-6">
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-              </div>
-            ) : (
-              <>
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <div className="glass rounded-xl shadow-2xl p-6 border border-white/20 backdrop-blur-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">Total Users</p>
-                        <p className="text-3xl font-bold text-white mt-2">{dashboardData?.totalUsers || 0}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                      </div>
-                    </div>
+            <div className="glass rounded-xl shadow-2xl border border-white/20 backdrop-blur-lg">
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-white mb-4">All Orders</h2>
+                
+                {/* Loading State */}
+                {loading && (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <p className="text-white mt-2">Loading orders...</p>
                   </div>
+                )}
 
-                  <div className="glass rounded-xl shadow-2xl p-6 border border-white/20 backdrop-blur-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">Total Orders</p>
-                        <p className="text-3xl font-bold text-white mt-2">{dashboardData?.totalOrders || 0}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                      </div>
-                    </div>
+                {/* Error State */}
+                {error && (
+                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-4">
+                    <p className="text-red-200">{error}</p>
                   </div>
+                )}
 
-                  <div className="glass rounded-xl shadow-2xl p-6 border border-white/20 backdrop-blur-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">Total Complaints</p>
-                        <p className="text-3xl font-bold text-white mt-2">{dashboardData?.totalComplaints || 0}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="glass rounded-xl shadow-2xl p-6 border border-white/20 backdrop-blur-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">Order Status</p>
-                        <p className="text-sm font-semibold text-green-400 mt-2">
-                          Pending: {dashboardData?.orderStatuses?.pending || 0}
-                        </p>
-                        <p className="text-sm font-semibold text-blue-400">
-                          Shipped: {dashboardData?.orderStatuses?.shipped || 0}
-                        </p>
-                      </div>
-                      <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Charts and Tables */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Recent Orders */}
-                  <div className="glass rounded-xl shadow-2xl p-6 border border-white/20 backdrop-blur-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Orders</h3>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-white/20">
-                        <thead>
+                {/* Orders Table */}
+                {!loading && !error && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-white/20">
+                      <thead>
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Order #</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Email</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Tracking</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {orders.length === 0 ? (
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Order ID</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Customer</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">Location</th>
+                            <td colSpan={6} className="px-4 py-8 text-center text-white/60">
+                              No orders found
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/10">
-                          {dashboardData?.recentOrders?.map((order: any) => (
+                        ) : (
+                          orders.map((order) => (
                             <tr key={order.id}>
-                              <td className="px-4 py-3 text-sm text-white">{order.order_number}</td>
+                              <td className="px-4 py-3 text-sm text-white font-medium">{order.order_number}</td>
                               <td className="px-4 py-3 text-sm text-white">{order.user_name}</td>
+                              <td className="px-4 py-3 text-sm text-white">{order.user_email}</td>
                               <td className="px-4 py-3">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full backdrop-blur-sm ${
-                                  order.status === 'Delivered' ? 'bg-green-500/30 text-green-100' :
-                                  order.status === 'Pending' ? 'bg-yellow-500/30 text-yellow-100' :
-                                  order.status === 'Shipped' ? 'bg-blue-500/30 text-blue-100' :
-                                  order.status === 'Out For Delivery' ? 'bg-purple-500/30 text-purple-100' :
-                                  order.status === 'Cancelled' ? 'bg-red-500/30 text-red-100' :
-                                  'bg-gray-500/30 text-gray-100'
-                                }`}>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full backdrop-blur-sm ${getStatusColor(order.status)}`}>
                                   {order.status}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-sm text-white">{order.tracking_location}</td>
+                              <td className="px-4 py-3 text-sm text-white">
+                                {order.tracking_location || 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-white">
+                                {new Date(order.created_at).toLocaleDateString()}
+                              </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-
-                  {/* Recent Complaints */}
-                  <div className="glass rounded-xl shadow-2xl p-6 border border-white/20 backdrop-blur-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Complaints</h3>
-                    <div className="space-y-4">
-                      {dashboardData?.recentComplaints?.map((complaint: any) => (
-                        <div key={complaint.id} className="border-l-4 border-red-400 pl-4">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-white">{complaint.issue_type.replace('_', ' ').toUpperCase()}</p>
-                            <span className="text-xs text-white/70">
-                              {new Date(complaint.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-white/80 mt-1">{complaint.message}</p>
-                          <div className="flex items-center mt-2 space-x-2">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full backdrop-blur-sm ${
-                              complaint.status === 'open' ? 'bg-red-500/30 text-red-100' :
-                              complaint.status === 'investigating' ? 'bg-yellow-500/30 text-yellow-100' :
-                              complaint.status === 'resolved' ? 'bg-green-500/30 text-green-100' :
-                              'bg-gray-500/30 text-gray-100'
-                            }`}>
-                              {complaint.status}
-                            </span>
-                            <span className="text-xs text-white/70">By: {complaint.user_name}</span>
-                            <span className="text-xs text-white/70">Order: {complaint.order_number}</span>
-                          </div>
-                        </div>
-                      ))}
-                      {(!dashboardData?.recentComplaints || dashboardData.recentComplaints.length === 0) && (
-                        <p className="text-white/60 text-center py-4">No recent complaints</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+                )}
+              </div>
+            </div>
           </main>
         </div>
       </div>
     </div>
-  );  
+  );
 }
