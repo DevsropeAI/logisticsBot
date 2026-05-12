@@ -54,3 +54,25 @@ exports.getMessages = (session_id) => {
 
 };
 
+exports.deleteBySession = (session_id) => {
+
+  return new Promise((resolve, reject) => {
+
+    db.query(
+      `
+      DELETE FROM chat_history
+      WHERE session_id = ?
+      `,
+      [session_id],
+      (err, result) => {
+
+        if (err) reject(err);
+
+        resolve(result);
+
+      }
+    );
+
+  });
+
+};

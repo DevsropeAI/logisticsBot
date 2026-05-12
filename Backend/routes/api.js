@@ -5,7 +5,7 @@ const AuthController = require("../app/controllers/AuthController");
 const { authMiddleware } = require("../middleware/authMiddleware");
 
 // Chat routes
-router.post("/chat", authMiddleware, ChatController.chat);
+router.post("/chat",  ChatController.chat);
 
 // Auth routes
 router.post("/auth/login", AuthController.login);

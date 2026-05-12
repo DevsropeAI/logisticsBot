@@ -8,7 +8,7 @@ const ChatHistory = require("../models/ChatHistory");
 const OpenAI = require("openai");
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: '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',
 });
 
 // ============================
@@ -41,6 +41,61 @@ class ChatService {
 
   static async handle(data, userMessage, sessionId, req) {
     try {
+
+      const closeChatKeywords = [
+        "bye",
+        "goodbye",
+        "end",
+        "end chat",
+        "close",
+        "close chat",
+        "exit",
+        "quit",
+        "stop",
+        "stop chat",
+        "finish",
+        "finished",
+        "done",
+        "i am done",
+        "thank you",
+        "thanks",
+        "ok thanks",
+        "no thanks",
+        "that's all",
+        "thats all",
+        "nothing else",
+        "no more questions",
+        "problem solved",
+        "issue resolved",
+        "resolved",
+        "chat over",
+        "terminate",
+        "cancel chat",
+        "leave chat",
+        "see you",
+        "talk later",
+        "thankyou",
+        "ok bye",
+        "bye bye"
+      ];
+
+      const normalizedMessage = userMessage
+        .toLowerCase()
+        .trim();
+
+      if (
+        closeChatKeywords.some(keyword =>
+          normalizedMessage.includes(keyword)
+        )
+      ) {
+        await ChatHistory.deleteBySession(sessionId);
+
+        req.session.orderId = null;
+
+        req.session.destroy(() => {});
+
+        return "Thank you 😊 Your chat has been ended.";
+      }
       // ============================
       // SAVE USER MESSAGE
       // ============================
