@@ -1,47 +1,56 @@
-const db = require("./db");
+const prisma = require("./db");
 
-exports.getAllComplaints = () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT c.id, c.order_id, c.issue_type, c.message, c.status, c.created_at,
-              u.name as user_name, u.email as user_email, u.phone as user_phone,
-              o.order_number
-       FROM complaints c 
-       JOIN users u ON c.user_id = u.id 
-       LEFT JOIN orders o ON c.order_id = o.id 
-       ORDER BY c.created_at DESC`,
-      (err, result) => {
-        if (err) reject(err);
-        resolve(result);
+exports.getAllComplaints = async () => {
+  const complaints = await prisma.complaint.findMany({
+    select: {
+      id: true,
+      orderId: true,
+      issueType: true,
+      message: true,
+      status: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          phone: true
+        }
+      },
+      order: {
+        select: {
+          orderNumber: true
+        }
       }
-    );
+    },
+    orderBy: { createdAt: 'desc' }
   });
+
+  return complaints.map(complaint => ({
+    id: complaint.id,
+    order_id: complaint.orderId,
+    issue_type: complaint.issueType,
+    message: complaint.message,
+    status: complaint.status,
+    created_at: complaint.createdAt,
+    user_name: complaint.user?.name,
+    user_email: complaint.user?.email,
+    user_phone: complaint.user?.phone,
+    order_number: complaint.order?.orderNumber
+  }));
 };
 
-exports.createComplaint = ({
+exports.createComplaint = async ({
   order_id,
   user_id,
   issue_type,
   message,
 }) => {
-  return new Promise((resolve, reject) => {
-
-    db.query(
-      `
-      INSERT INTO complaints
-      (order_id, user_id, issue_type, message)
-      VALUES (?, ?, ?, ?)
-      `,
-      [order_id, user_id, issue_type, message],
-      (err, result) => {
-
-        if (err) {
-          reject(err);
-        }
-
-        resolve(result);
-      }
-    );
-
+  return await prisma.complaint.create({
+    data: {
+      orderId: parseInt(order_id),
+      userId: parseInt(user_id),
+      issueType: issue_type,
+      message
+    }
   });
 };

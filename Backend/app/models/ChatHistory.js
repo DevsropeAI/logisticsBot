@@ -1,57 +1,26 @@
-const db = require("./db");
+const prisma = require("./db");
 
-exports.saveMessage = ({
+exports.saveMessage = async ({
   session_id,
   role,
   message,
 }) => {
-
-  return new Promise((resolve, reject) => {
-
-    db.query(
-      `
-      INSERT INTO chat_history
-      (session_id, role, message)
-      VALUES (?, ?, ?)
-      `,
-      [session_id, role, message],
-      (err, result) => {
-
-        if (err) reject(err);
-
-        resolve(result);
-
-      }
-    );
-
+  return await prisma.chatHistory.create({
+    data: {
+      sessionId: session_id,
+      role,
+      message
+    }
   });
-
 };
 
-exports.getMessages = (session_id) => {
-
-  return new Promise((resolve, reject) => {
-
-    db.query(
-      `
-      SELECT role, message
-      FROM chat_history
-      WHERE session_id = ?
-      ORDER BY id ASC
-      LIMIT 10
-      `,
-      [session_id],
-      (err, result) => {
-
-        if (err) reject(err);
-
-        resolve(result);
-
-      }
-    );
-
+exports.getMessages = async (session_id) => {
+  return await prisma.chatHistory.findMany({
+    where: { sessionId: session_id },
+    orderBy: { id: 'asc' },
+    take: 10,
+    select: { role: true, message: true }
   });
-
 };
 
 exports.deleteBySession = (session_id) => {

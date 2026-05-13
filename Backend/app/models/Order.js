@@ -1,51 +1,83 @@
-const db = require("./db");
+const prisma = require("./db");
 
-exports.getAllOrders = () => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT o.id, o.order_number, o.status, o.created_at,
-              u.name as user_name, u.email as user_email, u.phone as user_phone,
-              t.location as tracking_location, t.eta as tracking_eta
-       FROM orders o 
-       JOIN users u ON o.user_id = u.id 
-       LEFT JOIN tracking t ON o.id = t.order_id 
-       ORDER BY o.created_at DESC`,
-      (err, result) => {
-        if (err) reject(err);
-        resolve(result);
+exports.getAllOrders = async () => {
+  const orders = await prisma.order.findMany({
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          phone: true
+        }
+      },
+      tracking: {
+        select: {
+          location: true,
+          eta: true
+        }
       }
-    );
+    },
+    orderBy: { createdAt: 'desc' }
   });
+
+  return orders.map(order => ({
+    id: order.id,
+    order_number: order.orderNumber,
+    status: order.status,
+    created_at: order.createdAt,
+    user_name: order.user?.name,
+    user_email: order.user?.email,
+    user_phone: order.user?.phone,
+    tracking_location: order.tracking?.location,
+    tracking_eta: order.tracking?.eta
+  }));
 };
 
-exports.getOrderWithTracking = (orderId) => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      `SELECT o.id, o.order_number, o.status, o.created_at,
-              u.name as user_name, u.email as user_email, u.phone as user_phone,
-              t.location as tracking_location, t.eta as tracking_eta
-       FROM orders o 
-       JOIN users u ON o.user_id = u.id 
-       LEFT JOIN tracking t ON o.id = t.order_id 
-       WHERE o.id = ?`,
-      [orderId],
-      (err, result) => {
-        if (err) reject(err);
-        resolve(result[0]);
+exports.getOrderWithTracking = async (orderId) => {
+  const order = await prisma.order.findUnique({
+    where: { id: parseInt(orderId) },
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          phone: true
+        }
+      },
+      tracking: {
+        select: {
+          location: true,
+          eta: true
+        }
       }
-    );
+    }
   });
+
+  if (!order) return null;
+
+  return {
+    id: order.id,
+    order_number: order.orderNumber,
+    status: order.status,
+    created_at: order.createdAt,
+    user_name: order.user?.name,
+    user_email: order.user?.email,
+    user_phone: order.user?.phone,
+    tracking_location: order.tracking?.location,
+    tracking_eta: order.tracking?.eta
+  };
 };
 
-exports.findByOrderNumber = (orderNumber) => {
-  return new Promise((resolve, reject) => {
-    db.query(
-      "SELECT * FROM orders WHERE order_number = ?",
-      [orderNumber],
-      (err, result) => {
-        if (err) reject(err);
-        resolve(result[0]);
-      }
-    );
+exports.findByOrderNumber = async (orderNumber) => {
+  return await prisma.order.findUnique({
+    where: { orderNumber }
   });
 };

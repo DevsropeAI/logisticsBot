@@ -1,15 +1,5 @@
-const mysql = require("mysql2");
+const { PrismaClient } = require('@prisma/client');
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "chatbot"
-});
+const prisma = new PrismaClient();
 
-db.connect(err => {
-  if (err) throw err;
-  console.log("MySQL Connected...");
-});
-
-module.exports = db;
+module.exports = prisma;
