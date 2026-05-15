@@ -6,9 +6,7 @@ async function main() {
   console.log("Seeding started...");
 
   // Delete old data
-  await prisma.complaint.deleteMany();
   await prisma.tracking.deleteMany();
-  await prisma.chatHistory.deleteMany();
   await prisma.order.deleteMany();
   await prisma.user.deleteMany();
 
@@ -145,41 +143,6 @@ async function main() {
     ],
   });
 
-  // Chat History
-  await prisma.chatHistory.createMany({
-    data: [
-      {
-        id: 1,
-        userId: 2,
-        message: "Where is my order?",
-        response: "Your order has been shipped.",
-      },
-      {
-        id: 2,
-        userId: 3,
-        message: "When will delivery arrive?",
-        response: "Expected delivery is today.",
-      },
-    ],
-  });
-
-  // Complaints
-  await prisma.complaint.createMany({
-    data: [
-      {
-        id: 1,
-        userId: 5,
-        complaint: "My parcel arrived damaged.",
-        status: "Pending",
-      },
-      {
-        id: 2,
-        userId: 6,
-        complaint: "Delivery was delayed.",
-        status: "Resolved",
-      },
-    ],
-  });
 
   console.log("Seeding completed successfully.");
 }
