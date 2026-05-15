@@ -32,8 +32,8 @@ model Order {
   status      String?  @db.VarChar(50)
   createdAt   DateTime @default(now()) @map("created_at")
 
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tracking  Tracking?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tracking   Tracking?
   complaints Complaint[]
 
   @@map("orders")
